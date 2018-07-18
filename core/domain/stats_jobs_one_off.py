@@ -34,6 +34,45 @@ import feconf
 ])
 
 
+class ExplorationIssuesModelCreatorOneOffJob(
+        jobs.BaseMapReduceOneOffJobManager):
+    """A one-off job for creating a default ExplorationIsssues model instance
+    for all the explorations in the datastore. If an ExplorationIssues model
+    already exists for an exploration, it is refreshed to a default instance.
+    """
+
+    @classmethod
+    def entity_classes_to_map_over(cls):
+        return [exp_models.ExplorationModel]
+
+    @staticmethod
+    def map(exploration_model):
+        if not exploration_model.deleted:
+            current_version = exploration_model.version
+            for exp_version in xrange(1, current_version + 1):
+                exp_issues_model = (
+                    stats_models.ExplorationIssuesModel.get_model(
+                        exploration_model.id, exp_version))
+                if not exp_issues_model:
+                    exp_issues_default = (
+                        stats_domain.ExplorationIssues.create_default(
+                            exploration_model.id, exp_version))
+                    stats_models.ExplorationIssuesModel.create(
+                        exp_issues_default.exp_id,
+                        exp_issues_default.exp_version,
+                        exp_issues_default.unresolved_issues)
+                else:
+                    exp_issues_model.unresolved_issues = []
+                    exp_issues_model.put()
+            yield(
+                exploration_model.id,
+                'ExplorationIssuesModel created')
+
+    @staticmethod
+    def reduce(exp_id, values):
+        yield "%s: %s" % (exp_id, values)
+
+
 class RecomputeStatisticsOneOffJob(jobs.BaseMapReduceOneOffJobManager):
     """A one-off job for recomputing creator statistics from the events
     in the datastore. Should only be run in events of data corruption.
@@ -131,7 +170,7 @@ class RecomputeStatisticsOneOffJob(jobs.BaseMapReduceOneOffJobManager):
         event_dict_idx = 0
         event_dict = sorted_events_dicts[event_dict_idx]
         for version in versions:
-            datastore_stats_for_version = old_stats[version-1]
+            datastore_stats_for_version = old_stats[version - 1]
             if version == 1:
                 # Reset the possibly corrupted stats.
                 datastore_stats_for_version.num_starts_v2 = 0
@@ -221,20 +260,22 @@ class RecomputeStatisticsOneOffJob(jobs.BaseMapReduceOneOffJobManager):
         stats_models.ExplorationStatsModel.save_multi(exp_stats_dicts)
 
     @classmethod
-    def _apply_state_name_changes(cls, prev_stats_dict, change_list):
+    def _apply_state_name_changes(cls, prev_stats_dict, change_list_dict):
         """Update the state_stats_mapping to correspond with the changes
         in change_list.
 
         Args:
             prev_stats_dict: dict. A dict representation of an
                 ExplorationStatsModel.
-            change_list: list(dict). A list of all of the commit cmds from
+            change_list_dict: list(dict). A list of all of the commit cmds from
                 the old_stats_model up to the next version.
 
         Returns:
             dict. A dict representation of an ExplorationStatsModel
                 with updated state_stats_mapping and version.
         """
+        change_list = [
+            exp_domain.ExplorationChange(change) for change in change_list_dict]
         exp_versions_diff = exp_domain.ExplorationVersionsDiff(change_list)
 
         # Handling state deletions, renames and additions (in that order). The
@@ -423,19 +464,19 @@ class StatisticsAuditV1(jobs.BaseMapReduceOneOffJobManager):
 
                 StatisticsAuditV1.require_non_negative(
                     exp_id, exp_version, 'total_answers_count_v1',
-                    total_answers_count_v1, state_name)
+                    total_answers_count_v1, state_name=state_name)
                 StatisticsAuditV1.require_non_negative(
                     exp_id, exp_version, 'useful_feedback_count_v1',
-                    useful_feedback_count_v1, state_name)
+                    useful_feedback_count_v1, state_name=state_name)
                 StatisticsAuditV1.require_non_negative(
                     exp_id, exp_version, 'total_hit_count_v1',
-                    total_hit_count_v1, state_name)
+                    total_hit_count_v1, state_name=state_name)
                 StatisticsAuditV1.require_non_negative(
                     exp_id, exp_version, 'first_hit_count_v1',
-                    first_hit_count_v1, state_name)
+                    first_hit_count_v1, state_name=state_name)
                 StatisticsAuditV1.require_non_negative(
                     exp_id, exp_version, 'num_completions_v1',
-                    num_completions_v1, state_name)
+                    num_completions_v1, state_name=state_name)
 
                 # The total number of answers submitted can never be less than
                 # the number of submitted answers for which useful feedback was

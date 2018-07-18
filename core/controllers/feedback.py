@@ -14,10 +14,12 @@
 
 """Controllers for the feedback thread page."""
 
+from constants import constants
 from core.controllers import base
 from core.domain import acl_decorators
 from core.domain import exp_services
 from core.domain import feedback_services
+from core.domain import suggestion_services
 from core.platform import models
 import feconf
 
@@ -36,7 +38,7 @@ class ThreadListHandler(base.BaseHandler):
                 exploration_id, False)]})
         self.render_json(self.values)
 
-    @acl_decorators.can_comment_on_feedback_thread
+    @acl_decorators.can_create_feedback_thread
     def post(self, exploration_id):
         subject = self.payload.get('subject')
         if not subject:
@@ -62,14 +64,18 @@ class ThreadHandler(base.BaseHandler):
 
     GET_HANDLER_ERROR_RETURN_TYPE = feconf.HANDLER_TYPE_JSON
 
-    @acl_decorators.can_play_exploration
-    def get(self, exploration_id, thread_id):  # pylint: disable=unused-argument
-        suggestion = feedback_services.get_suggestion(exploration_id, thread_id)
+    @acl_decorators.can_view_feedback_thread
+    def get(self, thread_id):
+        if constants.USE_NEW_SUGGESTION_FRAMEWORK:
+            suggestion = suggestion_services.get_suggestion_by_id(thread_id)
+        else:
+            suggestion = feedback_services.get_suggestion(thread_id)
+
         messages = [m.to_dict() for m in feedback_services.get_messages(
-            exploration_id, thread_id)]
+            thread_id)]
         message_ids = [message['message_id'] for message in messages]
         feedback_services.update_messages_read_by_the_user(
-            self.user_id, exploration_id, thread_id, message_ids)
+            self.user_id, thread_id, message_ids)
         self.values.update({
             'messages': messages,
             'suggestion': suggestion.to_dict() if suggestion else None
@@ -77,8 +83,8 @@ class ThreadHandler(base.BaseHandler):
         self.render_json(self.values)
 
     @acl_decorators.can_comment_on_feedback_thread
-    def post(self, exploration_id, thread_id):  # pylint: disable=unused-argument
-        suggestion = feedback_services.get_suggestion(exploration_id, thread_id)
+    def post(self, thread_id):
+        suggestion = feedback_services.get_suggestion(thread_id)
         text = self.payload.get('text')
         updated_status = self.payload.get('updated_status')
         if not text and not updated_status:
@@ -89,7 +95,6 @@ class ThreadHandler(base.BaseHandler):
                 'Suggestion thread status cannot be changed manually.')
 
         feedback_services.create_message(
-            exploration_id,
             thread_id,
             self.user_id,
             updated_status,
@@ -177,7 +182,7 @@ class SuggestionActionHandler(base.BaseHandler):
                 self.payload.get('audio_update_required'))
         elif action == self._REJECT_ACTION:
             exp_services.reject_suggestion(
-                self.user_id, thread_id, exploration_id)
+                self.user_id, thread_id)
         else:
             raise self.InvalidInputException('Invalid action.')
 
@@ -201,7 +206,7 @@ class SuggestionListHandler(base.BaseHandler):
         else:
             return None
 
-    @acl_decorators.can_comment_on_feedback_thread
+    @acl_decorators.can_play_exploration
     def get(self, exploration_id):
         threads = None
         list_type = self.request.get('list_type')
@@ -233,8 +238,8 @@ class FeedbackThreadViewEventHandler(base.BaseHandler):
     """
 
     @acl_decorators.can_comment_on_feedback_thread
-    def post(self, exploration_id):
-        thread_id = self.payload.get('thread_id')
+    def post(self, thread_id):
+        exploration_id = feedback_services.get_exp_id_from_thread_id(thread_id)
         transaction_services.run_in_transaction(
             feedback_services.clear_feedback_message_references, self.user_id,
             exploration_id, thread_id)

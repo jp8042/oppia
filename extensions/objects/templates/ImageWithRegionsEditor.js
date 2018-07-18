@@ -18,25 +18,23 @@
 
 // TODO(czx): Uniquify the labels of image regions
 oppia.directive('imageWithRegionsEditor', [
-  '$sce', '$compile', 'AlertsService', '$document', 'ExplorationContextService',
+  '$sce', 'UrlInterpolationService', 'AlertsService', '$document',
+  'ContextService', 'AssetsBackendApiService',
   'OBJECT_EDITOR_URL_PREFIX',
-  function($sce, $compile, AlertsService, $document, ExplorationContextService,
+  function($sce, UrlInterpolationService, AlertsService, $document,
+      ContextService, AssetsBackendApiService,
       OBJECT_EDITOR_URL_PREFIX) {
     return {
-      link: function(scope, element) {
-        scope.getTemplateUrl = function() {
-          return OBJECT_EDITOR_URL_PREFIX + 'ImageWithRegions';
-        };
-        $compile(element.contents())(scope);
-      },
       restrict: 'E',
-      scope: true,
-      template: '<div ng-include="getTemplateUrl()"></div>',
+      scope: {
+        value: '='
+      },
+      templateUrl: UrlInterpolationService.getExtensionResourceUrl(
+        '/objects/templates/image_with_regions_editor_directive.html'),
       controller: [
         '$scope', '$element', '$uibModal',
         function($scope, $element, $uibModal) {
           $scope.alwaysEditable = true;
-
           // Dynamically defines the CSS style for the region rectangle.
           $scope.getRegionStyle = function(index) {
             if (index === $scope.selectedRegion) {
@@ -71,7 +69,7 @@ oppia.directive('imageWithRegionsEditor', [
               return 'display: none';
             }
             var area = cornerAndDimensionsFromRegionArea(
-              $scope.$parent.value.labeledRegions[
+              $scope.value.labeledRegions[
                 $scope.selectedRegion].region.area);
             return 'left: ' + (area.x + 6) + 'px; ' +
               'top: ' + (area.y + 26) + 'px; ' +
@@ -160,15 +158,14 @@ oppia.directive('imageWithRegionsEditor', [
           };
 
           $scope.getPreviewUrl = function(imageUrl) {
-            return $sce.trustAsResourceUrl(
-              '/imagehandler/' + ExplorationContextService.getExplorationId() +
-              '/' + encodeURIComponent(imageUrl)
-            );
+            return AssetsBackendApiService.getImageUrlForPreview(
+              ContextService.getExplorationId(),
+              encodeURIComponent(imageUrl));
           };
 
           // Called when the image is changed to calculate the required
           // width and height, especially for large images.
-          $scope.$watch('$parent.value.imagePath', function(newVal) {
+          $scope.$watch('value.imagePath', function(newVal) {
             if (newVal !== '') {
               // Loads the image in hanging <img> tag so as to get the
               // width and height.
@@ -195,8 +192,8 @@ oppia.directive('imageWithRegionsEditor', [
           $scope.regionLabelGetterSetter = function(index) {
             return function(label) {
               if (angular.isDefined(label)) {
-                $scope.$parent.value.labeledRegions[index].label = label;
-                var labels = $scope.$parent.value.labeledRegions.map(
+                $scope.value.labeledRegions[index].label = label;
+                var labels = $scope.value.labeledRegions.map(
                   function(region) {
                     return region.label;
                   }
@@ -208,7 +205,7 @@ oppia.directive('imageWithRegionsEditor', [
                   $scope.errorText = '';
                 }
               }
-              return $scope.$parent.value.labeledRegions[index].label;
+              return $scope.value.labeledRegions[index].label;
             };
           };
 
@@ -239,7 +236,7 @@ oppia.directive('imageWithRegionsEditor', [
             };
           };
           var resizeRegion = function() {
-            var labeledRegions = $scope.$parent.value.labeledRegions;
+            var labeledRegions = $scope.value.labeledRegions;
             var resizedRegion = labeledRegions[$scope.selectedRegion].region;
             var deltaX = $scope.mouseX - $scope.originalMouseX;
             var deltaY = $scope.mouseY - $scope.originalMouseY;
@@ -298,7 +295,7 @@ oppia.directive('imageWithRegionsEditor', [
               $scope.rectHeight = Math.abs(
                 $scope.originalMouseY - $scope.mouseY);
             } else if ($scope.userIsCurrentlyDragging) {
-              var labeledRegions = $scope.$parent.value.labeledRegions;
+              var labeledRegions = $scope.value.labeledRegions;
               var draggedRegion = labeledRegions[$scope.selectedRegion].region;
               var deltaX = $scope.mouseX - $scope.originalMouseX;
               var deltaY = $scope.mouseY - $scope.originalMouseY;
@@ -357,7 +354,7 @@ oppia.directive('imageWithRegionsEditor', [
             }
             if ($scope.userIsCurrentlyDrawing) {
               if ($scope.rectWidth !== 0 && $scope.rectHeight !== 0) {
-                var labels = $scope.$parent.value.labeledRegions.map(
+                var labels = $scope.value.labeledRegions.map(
                   function(region) {
                     return region.label;
                   }
@@ -384,9 +381,9 @@ oppia.directive('imageWithRegionsEditor', [
                     )
                   }
                 };
-                $scope.$parent.value.labeledRegions.push(newRegion);
+                $scope.value.labeledRegions.push(newRegion);
                 $scope.selectedRegion = (
-                  $scope.$parent.value.labeledRegions.length - 1);
+                  $scope.value.labeledRegions.length - 1);
               }
             }
             $scope.userIsCurrentlyDrawing = false;
@@ -409,7 +406,7 @@ oppia.directive('imageWithRegionsEditor', [
               return;
             }
             region = cornerAndDimensionsFromRegionArea(
-              $scope.$parent.value.labeledRegions[
+              $scope.value.labeledRegions[
                 $scope.hoveredRegion].region.area);
             if (!$scope.xDirectionToggled && !$scope.yDirectionToggled) {
               if ($scope.mouseY <= region.y + $scope.resizableBorderWidthPx) {
@@ -450,7 +447,7 @@ oppia.directive('imageWithRegionsEditor', [
             }
             $scope.selectedRegion = $scope.hoveredRegion;
             $scope.originalRectArea = cornerAndDimensionsFromRegionArea(
-              $scope.$parent.value.labeledRegions[
+              $scope.value.labeledRegions[
                 $scope.hoveredRegion].region.area
             );
           };
@@ -494,7 +491,9 @@ oppia.directive('imageWithRegionsEditor', [
           };
           $scope.resetEditor = function() {
             $uibModal.open({
-              templateUrl: 'modals/imageRegionsResetConfirmation',
+              templateUrl: UrlInterpolationService.getExtensionResourceUrl(
+                '/objects/templates/' +
+                'image_with_regions_reset_confirmation_directive.html'),
               backdrop: 'static',
               keyboard: false,
               controller: [
@@ -509,8 +508,8 @@ oppia.directive('imageWithRegionsEditor', [
                   };
                 }]
             }).result.then(function() {
-              $scope.$parent.value.imagePath = '';
-              $scope.$parent.value.labeledRegions = [];
+              $scope.value.imagePath = '';
+              $scope.value.labeledRegions = [];
               $scope.initializeEditor();
             });
           };
@@ -525,7 +524,7 @@ oppia.directive('imageWithRegionsEditor', [
             } else if ($scope.hoveredRegion > index) {
               $scope.hoveredRegion--;
             }
-            $scope.$parent.value.labeledRegions.splice(index, 1);
+            $scope.value.labeledRegions.splice(index, 1);
           };
         }
       ]

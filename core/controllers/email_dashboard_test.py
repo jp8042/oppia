@@ -54,7 +54,7 @@ class EmailDashboardDataHandlerTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': 2
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -92,28 +92,28 @@ class EmailDashboardDataHandlerTests(test_utils.GenericTestBase):
         self.login(self.SUBMITTER_EMAIL)
         csrf_token = self.get_csrf_token_from_response(
             self.testapp.get('/emaildashboard'))
-        with self.assertRaisesRegexp(Exception, '400 Invalid input for query.'):
-            self.post_json(
-                '/emaildashboarddatahandler', {
-                    'data': {
-                        'has_not_logged_in_for_n_days': 2,
-                        'inactive_in_last_n_days': 5,
-                        'created_at_least_n_exps': 1,
-                        'created_fewer_than_n_exps': None,
-                        'edited_at_least_n_exps': None,
-                        'fake_key': 2
-                    }}, csrf_token)
+        self.post_json(
+            '/emaildashboarddatahandler', {
+                'data': {
+                    'has_not_logged_in_for_n_days': 2,
+                    'inactive_in_last_n_days': 5,
+                    'created_at_least_n_exps': 1,
+                    'created_fewer_than_n_exps': 'None',
+                    'edited_at_least_n_exps': None,
+                    'fake_key': 2
+                }}, csrf_token=csrf_token,
+            expect_errors=True, expected_status_int=400)
 
-        with self.assertRaisesRegexp(Exception, '400 Invalid input for query.'):
-            self.post_json(
-                '/emaildashboarddatahandler', {
-                    'data': {
-                        'has_not_logged_in_for_n_days': 2,
-                        'inactive_in_last_n_days': 5,
-                        'created_at_least_n_exps': 'invalid_value',
-                        'created_fewer_than_n_exps': 'None',
-                        'edited_at_least_n_exps': None
-                    }}, csrf_token)
+        self.post_json(
+            '/emaildashboarddatahandler', {
+                'data': {
+                    'has_not_logged_in_for_n_days': 2,
+                    'inactive_in_last_n_days': 5,
+                    'created_at_least_n_exps': 'invalid_value',
+                    'created_fewer_than_n_exps': 'None',
+                    'edited_at_least_n_exps': None
+                }}, csrf_token=csrf_token,
+            expect_errors=True, expected_status_int=400)
         self.logout()
 
 
@@ -167,7 +167,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': None
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -203,7 +203,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                         'email_body': 'body',
                         'max_recipients': None,
                         'email_intent': 'bulk_email_marketing'
-                    }}, csrf_token)
+                    }}, csrf_token=csrf_token)
             self.logout()
 
             # Check that emails are sent to qualified users.
@@ -269,7 +269,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': None
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         query_models = user_models.UserQueryModel.query().fetch()
 
         # Check that exception is raised if query is still processing.
@@ -318,7 +318,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                         'email_body': 'body',
                         'max_recipients': 1,
                         'email_intent': 'bulk_email_marketing'
-                    }}, csrf_token)
+                    }}, csrf_token=csrf_token)
             self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -342,7 +342,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': None
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -365,7 +365,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                         'email_body': 'body',
                         'max_recipients': 1,
                         'email_intent': 'bulk_email_marketing'
-                    }}, csrf_token)
+                    }}, csrf_token=csrf_token)
             self.logout()
 
             # Check that emails are sent to max n qualified users.
@@ -390,7 +390,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': None
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -408,7 +408,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     '/emaildashboardresult/%s' % query_models[0].id))
             self.post_json(
                 '/emaildashboardcancelresult/%s' % query_models[0].id, {},
-                csrf_token)
+                csrf_token=csrf_token)
             self.logout()
 
             # Check that no email is sent to qualified users.
@@ -430,7 +430,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': None
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -450,7 +450,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                 '/emaildashboardtestbulkemailhandler/%s' % query_models[0].id, {
                     'email_body': email_body,
                     'email_subject': email_subject
-                }, csrf_token)
+                }, csrf_token=csrf_token)
             self.logout()
 
             # Check that correct test email is sent to submitter of query.
@@ -494,7 +494,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                     'created_fewer_than_n_exps': None,
                     'edited_at_least_n_exps': None,
                     'edited_fewer_than_n_exps': None
-                }}, csrf_token)
+                }}, csrf_token=csrf_token)
         self.logout()
 
         query_models = user_models.UserQueryModel.query().fetch()
@@ -510,7 +510,7 @@ class EmailDashboardResultTests(test_utils.GenericTestBase):
                 '/emaildashboardtestbulkemailhandler/%s' % query_models[0].id, {
                     'email_body': 'email_body',
                     'email_subject': 'email_subject'
-                }, csrf_token)
+                }, csrf_token=csrf_token)
             self.logout()
 
             # Check that test email is sent to submitter of query.

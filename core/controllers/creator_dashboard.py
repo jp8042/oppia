@@ -35,6 +35,7 @@ import utils
 
 EXPLORATION_ID_KEY = 'explorationId'
 COLLECTION_ID_KEY = 'collectionId'
+QUESTION_ID_KEY = 'questionId'
 
 DEFAULT_TWITTER_SHARE_MESSAGE_DASHBOARD = config_domain.ConfigProperty(
     'default_twitter_share_message_dashboard', {
@@ -280,7 +281,7 @@ class NotificationsHandler(base.BaseHandler):
         })
 
 
-class NewExploration(base.BaseHandler):
+class NewExplorationHandler(base.BaseHandler):
     """Creates a new exploration."""
 
     @acl_decorators.can_create_exploration
@@ -298,7 +299,7 @@ class NewExploration(base.BaseHandler):
         })
 
 
-class NewCollection(base.BaseHandler):
+class NewCollectionHandler(base.BaseHandler):
     """Creates a new collection."""
 
     @acl_decorators.can_create_collection

@@ -15,6 +15,7 @@
 """Tests for the profile page."""
 
 from constants import constants
+from core.domain import exp_domain
 from core.domain import exp_services
 from core.domain import rights_manager
 from core.domain import subscription_services
@@ -125,7 +126,7 @@ class SignupTest(test_utils.GenericTestBase):
             {'agreed_to_terms': True, 'username': 'creatoruser',
              'default_dashboard': constants.DASHBOARD_TYPE_CREATOR,
              'can_receive_email_updates': None},
-            csrf_token)
+            csrf_token=csrf_token)
 
         user_id = user_services.get_user_id_from_username('creatoruser')
         user_settings = user_services.get_user_settings(user_id)
@@ -144,7 +145,7 @@ class SignupTest(test_utils.GenericTestBase):
             {'agreed_to_terms': True, 'username': 'learneruser',
              'default_dashboard': constants.DASHBOARD_TYPE_LEARNER,
              'can_receive_email_updates': None},
-            csrf_token)
+            csrf_token=csrf_token)
 
         user_id = user_services.get_user_id_from_username('learneruser')
         user_settings = user_services.get_user_settings(user_id)
@@ -598,11 +599,11 @@ class UserContributionsTests(test_utils.GenericTestBase):
         rights_manager.publish_exploration(user_a, self.EXP_ID_1)
 
         exp_services.update_exploration(
-            user_b_id, self.EXP_ID_1, [{
+            user_b_id, self.EXP_ID_1, [exp_domain.ExplorationChange({
                 'cmd': 'edit_exploration_property',
                 'property_name': 'objective',
                 'new_value': 'the objective'
-            }], 'Test edit')
+            })], 'Test edit')
 
         response_dict = self.get_json(
             '/profilehandler/data/%s' % self.USERNAME_B)
@@ -634,7 +635,7 @@ class SiteLanguageHandlerTests(test_utils.GenericTestBase):
             '/preferenceshandler/data', {
                 'update_type': 'preferred_site_language_code',
                 'data': language_code,
-            }, csrf_token)
+            }, csrf_token=csrf_token)
 
         preferences = self.get_json('/preferenceshandler/data')
         self.assertIsNotNone(preferences)
@@ -660,7 +661,7 @@ class LongUserBioHandlerTests(test_utils.GenericTestBase):
             '/preferenceshandler/data', {
                 'update_type': 'user_bio',
                 'data': 'I am within 2000 char limit',
-            }, csrf_token)
+            }, csrf_token=csrf_token)
         preferences = self.get_json('/preferenceshandler/data')
         self.assertIsNotNone(preferences)
         self.assertEqual(

@@ -21,6 +21,7 @@ import os
 from constants import constants
 from core.domain import collection_services
 from core.domain import event_services
+from core.domain import exp_domain
 from core.domain import exp_services
 from core.domain import rights_manager
 from core.domain import user_jobs_continuous
@@ -313,8 +314,10 @@ class UserServicesUnitTests(test_utils.GenericTestBase):
         # the default mute values.
         user_services.set_email_preferences_for_exploration(
             user_id, exploration_id,
-            feconf.DEFAULT_FEEDBACK_NOTIFICATIONS_MUTED_PREFERENCE,
-            feconf.DEFAULT_SUGGESTION_NOTIFICATIONS_MUTED_PREFERENCE)
+            mute_feedback_notifications=(
+                feconf.DEFAULT_FEEDBACK_NOTIFICATIONS_MUTED_PREFERENCE),
+            mute_suggestion_notifications=(
+                feconf.DEFAULT_SUGGESTION_NOTIFICATIONS_MUTED_PREFERENCE))
 
         email_preferences = user_services.get_email_preferences_for_exploration(
             user_id, exploration_id)
@@ -526,12 +529,12 @@ class UpdateContributionMsecTests(test_utils.GenericTestBase):
             self.admin, self.EXP_ID)
 
         exp_services.update_exploration(
-            self.editor_id, self.EXP_ID, [{
+            self.editor_id, self.EXP_ID, [exp_domain.ExplorationChange({
                 'cmd': 'edit_state_property',
                 'state_name': init_state_name,
                 'property_name': 'widget_id',
                 'new_value': 'MultipleChoiceInput'
-            }], 'commit')
+            })], 'commit')
 
         self.assertIsNotNone(user_services.get_user_settings(
             self.editor_id).first_contribution_msec)
@@ -549,12 +552,12 @@ class UpdateContributionMsecTests(test_utils.GenericTestBase):
         # Test that commit to unpublished exploration does not update
         # contribution time.
         exp_services.update_exploration(
-            self.admin_id, self.EXP_ID, [{
+            self.admin_id, self.EXP_ID, [exp_domain.ExplorationChange({
                 'cmd': 'edit_state_property',
                 'state_name': init_state_name,
                 'property_name': 'widget_id',
                 'new_value': 'MultipleChoiceInput'
-            }], '')
+            })], '')
         self.assertIsNone(user_services.get_user_settings(
             self.admin_id).first_contribution_msec)
 
@@ -563,11 +566,11 @@ class UpdateContributionMsecTests(test_utils.GenericTestBase):
         rights_manager.assign_role_for_exploration(
             self.admin, self.EXP_ID, self.editor_id, 'editor')
         exp_services.update_exploration(
-            self.editor_id, self.EXP_ID, [{
+            self.editor_id, self.EXP_ID, [exp_domain.ExplorationChange({
                 'cmd': 'rename_state',
                 'old_state_name': feconf.DEFAULT_INIT_STATE_NAME,
                 'new_state_name': u'¡Hola! αβγ',
-            }], '')
+            })], '')
         self.assertIsNone(user_services.get_user_settings(
             self.editor_id).first_contribution_msec)
 
@@ -1000,22 +1003,22 @@ class LastExplorationEditedIntegrationTests(test_utils.GenericTestBase):
         self.assertIsNone(editor_settings.last_edited_an_exploration)
 
         exp_services.update_exploration(
-            self.editor_id, self.EXP_ID, [{
+            self.editor_id, self.EXP_ID, [exp_domain.ExplorationChange({
                 'cmd': 'edit_exploration_property',
                 'property_name': 'objective',
                 'new_value': 'the objective'
-            }], 'Test edit')
+            })], 'Test edit')
 
         editor_settings = user_services.get_user_settings(self.editor_id)
         self.assertIsNotNone(editor_settings.last_edited_an_exploration)
 
     def test_last_exp_edit_time_gets_updated(self):
         exp_services.update_exploration(
-            self.editor_id, self.EXP_ID, [{
+            self.editor_id, self.EXP_ID, [exp_domain.ExplorationChange({
                 'cmd': 'edit_exploration_property',
                 'property_name': 'objective',
                 'new_value': 'the objective'
-            }], 'Test edit')
+            })], 'Test edit')
 
         # Decrease last exploration edited time by 13 hours.
         user_settings = user_services.get_user_settings(self.editor_id)
@@ -1031,11 +1034,11 @@ class LastExplorationEditedIntegrationTests(test_utils.GenericTestBase):
 
         # The editor edits the exploration 13 hours after it was created.
         exp_services.update_exploration(
-            self.editor_id, self.EXP_ID, [{
+            self.editor_id, self.EXP_ID, [exp_domain.ExplorationChange({
                 'cmd': 'edit_exploration_property',
                 'property_name': 'objective',
                 'new_value': 'new objective'
-            }], 'Test edit 2')
+            })], 'Test edit 2')
 
         # Make sure last exploration edited time gets updated.
         editor_settings = user_services.get_user_settings(self.editor_id)

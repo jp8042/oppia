@@ -23,7 +23,7 @@ import tempfile
 import unittest
 
 _PARENT_DIR = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-_PYLINT_PATH = os.path.join(_PARENT_DIR, 'oppia_tools', 'pylint-1.7.1')
+_PYLINT_PATH = os.path.join(_PARENT_DIR, 'oppia_tools', 'pylint-1.8.4')
 sys.path.insert(0, _PYLINT_PATH)
 
 # Since these module needs to be imported after adding Pylint path,
@@ -38,43 +38,51 @@ from pylint import testutils  # isort:skip
 # pylint: enable=relative-import
 
 
-class ExplicitKwargsCheckerTest(unittest.TestCase):
+class ExplicitKeywordArgsCheckerTest(unittest.TestCase):
 
-    def test_finds_non_explicit_kwargs(self):
+    def test_finds_non_explicit_keyword_args(self):
         checker_test_object = testutils.CheckerTestCase()
         checker_test_object.CHECKER_CLASS = (
-            custom_lint_checks.ExplicitKwargsChecker)
+            custom_lint_checks.ExplicitKeywordArgsChecker)
         checker_test_object.setup_method()
-        func_node = astroid.extract_node("""
-        def test(test_var_one, test_var_two=4, test_var_three=5, test_var_four="test_checker"): #@
-            test_var_five = test_var_two + test_var_three
-            return test_var_five
-        """)
-        checker_test_object.checker.visit_functiondef(func_node)
-        func_args = func_node.args
-        checker_test_object.checker.visit_arguments(func_args)
         func_call_node_one, func_call_node_two, func_call_node_three = (
             astroid.extract_node("""
-        test(2, 5, 6) #@
+        def test(test_var_one, test_var_two=4, test_var_three=5, test_var_four="test_checker"):
+            test_var_five = test_var_two + test_var_three
+            return test_var_five
+
+        test(2, 5, test_var_three=6) #@
         test(2) #@
-        test(2, 5, 6, test_var_four="test_string") #@
+        test(2, 6, test_var_two=5, test_var_four="test_checker") #@
         """))
         with checker_test_object.assertAddsMessages(
             testutils.Message(
-                msg_id='non-explicit-kwargs',
+                msg_id='non-explicit-keyword-args',
                 node=func_call_node_one,
+                args=(
+                    "'test_var_two'",
+                    'function',
+                    'test'
+                )
             ),
         ):
             checker_test_object.checker.visit_call(
                 func_call_node_one)
+
         with checker_test_object.assertNoMessages():
             checker_test_object.checker.visit_call(
                 func_call_node_two)
+
         with checker_test_object.assertAddsMessages(
             testutils.Message(
-                msg_id='non-explicit-kwargs',
+                msg_id='non-explicit-keyword-args',
                 node=func_call_node_three,
-            ),
+                args=(
+                    "'test_var_three'",
+                    'function',
+                    'test'
+                )
+            )
         ):
             checker_test_object.checker.visit_call(
                 func_call_node_three)
@@ -92,8 +100,8 @@ class HangingIndentCheckerTest(unittest.TestCase):
         filename = temp_file.name
         with open(filename, 'w') as tmp:
             tmp.write(
-                """self.post_json('/ml/trainedclassifierhandler', self.payload,
-                expect_errors=True, expected_status_int=401)
+                """self.post_json('/ml/trainedclassifierhandler',
+                self.payload, expect_errors=True, expected_status_int=401)
                 """)
         node1.file = filename
         node1.path = filename
@@ -125,3 +133,57 @@ class HangingIndentCheckerTest(unittest.TestCase):
 
         with checker_test_object.assertNoMessages():
             temp_file.close()
+
+
+class DocstringParameterCheckerTest(unittest.TestCase):
+
+    def test_finds_docstring_parameter(self):
+        checker_test_object = testutils.CheckerTestCase()
+        checker_test_object.CHECKER_CLASS = (
+            custom_lint_checks.DocstringParameterChecker)
+        checker_test_object.setup_method()
+        func_node = astroid.extract_node("""
+        def test(test_var_one, test_var_two): #@
+            \"\"\"Function to test docstring parameters.
+
+            Args:
+                test_var_one: int. First test variable.
+                test_var_two: str. Second test variable.
+
+            Returns:
+                int. The test result.
+            \"\"\"
+            result = test_var_one + test_var_two
+            return result
+        """)
+        with checker_test_object.assertNoMessages():
+            checker_test_object.checker.visit_functiondef(func_node)
+
+
+class ImportOnlyModulesCheckerTest(unittest.TestCase):
+
+    def test_finds_import_from(self):
+        checker_test_object = testutils.CheckerTestCase()
+        checker_test_object.CHECKER_CLASS = (
+            custom_lint_checks.ImportOnlyModulesChecker)
+        checker_test_object.setup_method()
+        importfrom_node1 = astroid.extract_node("""
+            from os import path #@
+            import sys
+        """)
+        with checker_test_object.assertNoMessages():
+            checker_test_object.checker.visit_importfrom(importfrom_node1)
+
+        importfrom_node2 = astroid.extract_node("""
+            from os import error #@
+            import sys
+        """)
+        with checker_test_object.assertAddsMessages(
+            testutils.Message(
+                msg_id='import-only-modules',
+                node=importfrom_node2,
+                args=('error', 'os')
+            ),
+        ):
+            checker_test_object.checker.visit_importfrom(
+                importfrom_node2)

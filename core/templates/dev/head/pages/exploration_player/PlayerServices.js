@@ -25,36 +25,34 @@ oppia.constant('INTERACTION_SPECS', GLOBALS.INTERACTION_SPECS);
 // implemented differently depending on whether the skin is being played
 // in the learner view, or whether it is being previewed in the editor view.
 oppia.factory('ExplorationPlayerService', [
-  '$http', '$rootScope', '$q', 'LearnerParamsService',
-  'AlertsService', 'AnswerClassificationService', 'ExplorationContextService',
-  'PAGE_CONTEXT', 'ExplorationHtmlFormatterService',
-  'PlayerTranscriptService', 'ExplorationObjectFactory',
-  'ExpressionInterpolationService', 'StateClassifierMappingService',
-  'StatsReportingService', 'UrlInterpolationService',
-  'ReadOnlyExplorationBackendApiService',
-  'EditableExplorationBackendApiService', 'AudioTranslationLanguageService',
-  'LanguageUtilService', 'NumberAttemptsService', 'AudioPreloaderService',
-  'WindowDimensionsService', 'TWO_CARD_THRESHOLD_PX',
-  'PlayerCorrectnessFeedbackEnabledService',
-  'GuestCollectionProgressService',
+  '$http', '$rootScope', '$q', 'AlertsService', 'AnswerClassificationService',
+  'AudioPreloaderService', 'AudioTranslationLanguageService',
+  'EditableExplorationBackendApiService', 'ContextService',
+  'ExplorationHtmlFormatterService', 'ExplorationObjectFactory',
+  'ExpressionInterpolationService', 'GuestCollectionProgressService',
+  'ImagePreloaderService', 'LanguageUtilService', 'LearnerParamsService',
+  'NumberAttemptsService', 'PlayerCorrectnessFeedbackEnabledService',
+  'PlayerTranscriptService', 'PlaythroughService',
+  'ReadOnlyExplorationBackendApiService', 'StateClassifierMappingService',
+  'StatsReportingService', 'UrlInterpolationService', 'WindowDimensionsService',
+  'ENABLE_PLAYTHROUGH_RECORDING', 'PAGE_CONTEXT', 'TWO_CARD_THRESHOLD_PX',
   'WHITELISTED_COLLECTION_IDS_FOR_SAVING_GUEST_PROGRESS',
   function(
-      $http, $rootScope, $q, LearnerParamsService,
-      AlertsService, AnswerClassificationService, ExplorationContextService,
-      PAGE_CONTEXT, ExplorationHtmlFormatterService,
-      PlayerTranscriptService, ExplorationObjectFactory,
-      ExpressionInterpolationService, StateClassifierMappingService,
-      StatsReportingService, UrlInterpolationService,
-      ReadOnlyExplorationBackendApiService,
-      EditableExplorationBackendApiService, AudioTranslationLanguageService,
-      LanguageUtilService, NumberAttemptsService, AudioPreloaderService,
-      WindowDimensionsService, TWO_CARD_THRESHOLD_PX,
-      PlayerCorrectnessFeedbackEnabledService,
-      GuestCollectionProgressService,
+      $http, $rootScope, $q, AlertsService, AnswerClassificationService,
+      AudioPreloaderService, AudioTranslationLanguageService,
+      EditableExplorationBackendApiService, ContextService,
+      ExplorationHtmlFormatterService, ExplorationObjectFactory,
+      ExpressionInterpolationService, GuestCollectionProgressService,
+      ImagePreloaderService, LanguageUtilService, LearnerParamsService,
+      NumberAttemptsService, PlayerCorrectnessFeedbackEnabledService,
+      PlayerTranscriptService, PlaythroughService,
+      ReadOnlyExplorationBackendApiService, StateClassifierMappingService,
+      StatsReportingService, UrlInterpolationService, WindowDimensionsService,
+      ENABLE_PLAYTHROUGH_RECORDING, PAGE_CONTEXT, TWO_CARD_THRESHOLD_PX,
       WHITELISTED_COLLECTION_IDS_FOR_SAVING_GUEST_PROGRESS) {
-    var _explorationId = ExplorationContextService.getExplorationId();
+    var _explorationId = ContextService.getExplorationId();
     var _editorPreviewMode = (
-      ExplorationContextService.getPageContext() === PAGE_CONTEXT.EDITOR);
+      ContextService.getPageContext() === PAGE_CONTEXT.EXPLORATION_EDITOR);
     var _isLoggedIn = GLOBALS.userIsLoggedIn;
     var answerIsBeingProcessed = false;
 
@@ -159,9 +157,13 @@ oppia.factory('ExplorationPlayerService', [
       LearnerParamsService.init(startingParams);
     };
 
-    // Ensure the transition to a terminal state properly logs the end of the
-    // exploration.
     $rootScope.$on('playerStateChange', function(evt, newStateName) {
+      // To restart the preloader for the new state if required.
+      if (!_editorPreviewMode) {
+        ImagePreloaderService.onStateChange(newStateName);
+      }
+      // Ensure the transition to a terminal state properly logs the end of the
+      // exploration.
       if (!_editorPreviewMode && exploration.isStateTerminal(newStateName)) {
         StatsReportingService.recordExplorationCompleted(
           newStateName, LearnerParamsService.getAllParams());
@@ -260,6 +262,11 @@ oppia.factory('ExplorationPlayerService', [
             StatsReportingService.initSession(
               _explorationId, exploration.title,
               version, data.session_id, GLOBALS.collectionId);
+
+            if (ENABLE_PLAYTHROUGH_RECORDING) {
+              PlaythroughService.initSession(_explorationId, version);
+            }
+
             AudioTranslationLanguageService.init(
               exploration.getAllAudioLanguageCodes(),
               data.preferred_audio_language_code,
@@ -267,6 +274,9 @@ oppia.factory('ExplorationPlayerService', [
               data.auto_tts_enabled);
             AudioPreloaderService.init(exploration);
             AudioPreloaderService.kickOffAudioPreloader(
+              exploration.getInitialState().name);
+            ImagePreloaderService.init(exploration);
+            ImagePreloaderService.kickOffImagePreloader(
               exploration.getInitialState().name);
             PlayerCorrectnessFeedbackEnabledService.init(
               data.correctness_feedback_enabled);
@@ -335,6 +345,9 @@ oppia.factory('ExplorationPlayerService', [
       getSolution: function(stateName) {
         return exploration.getInteraction(stateName).solution;
       },
+      getContentIdsToAudioTranslations: function(stateName) {
+        return exploration.getState(stateName).contentIdsToAudioTranslations;
+      },
       isLoggedIn: function() {
         return _isLoggedIn;
       },
@@ -349,6 +362,8 @@ oppia.factory('ExplorationPlayerService', [
         answerIsBeingProcessed = true;
         var oldStateName = PlayerTranscriptService.getLastStateName();
         var oldState = exploration.getState(oldStateName);
+        var contentIdsToAudioTranslations =
+          oldState.contentIdsToAudioTranslations;
         var classificationResult = (
           AnswerClassificationService.getMatchingClassificationResult(
             _explorationId, oldStateName, oldState, answer,
@@ -378,13 +393,21 @@ oppia.factory('ExplorationPlayerService', [
         var refresherExplorationId = outcome.refresherExplorationId;
         var newState = exploration.getState(newStateName);
 
+        if (ENABLE_PLAYTHROUGH_RECORDING) {
+          StatsReportingService.recordAnswerSubmitAction(
+            oldStateName, newStateName, oldState.interaction.id, answer,
+            outcome.feedback);
+        }
+
         // Compute the data for the next state.
         var oldParams = LearnerParamsService.getAllParams();
         oldParams.answer = answer;
         var feedbackHtml =
           makeFeedback(outcome.feedback.getHtml(), [oldParams]);
+        var feedbackContentId = outcome.feedback.getContentId();
         var feedbackAudioTranslations =
-          outcome.feedback.getBindableAudioTranslations();
+          contentIdsToAudioTranslations.getBindableAudioTranslations(
+            feedbackContentId);
         if (feedbackHtml === null) {
           answerIsBeingProcessed = false;
           AlertsService.addWarning('Expression parsing error.');

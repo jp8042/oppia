@@ -195,6 +195,8 @@ class BaseHandler(webapp2.RequestHandler):
         self.is_super_admin = (
             current_user_services.is_current_user_super_admin())
 
+        self.values['additional_angular_modules'] = []
+        self.values['iframed'] = False
         self.values['is_moderator'] = user_services.is_at_least_moderator(
             self.user_id)
         self.values['is_admin'] = user_services.is_admin(self.user_id)
@@ -215,7 +217,7 @@ class BaseHandler(webapp2.RequestHandler):
         # If the request is to the old demo server, redirect it permanently to
         # the new demo server.
         if self.request.uri.startswith('https://oppiaserver.appspot.com'):
-            self.redirect('https://oppiatestserver.appspot.com', True)
+            self.redirect('https://oppiatestserver.appspot.com', permanent=True)
             return
 
         # In DEV_MODE, clearing cookies does not log out the user, so we
@@ -244,7 +246,8 @@ class BaseHandler(webapp2.RequestHandler):
                     '%s: payload %s',
                     e, self.payload)
 
-                return self.handle_exception(e, self.app.debug)
+                self.handle_exception(e, self.app.debug)
+                return
 
         super(BaseHandler, self).dispatch()
 
@@ -325,10 +328,7 @@ class BaseHandler(webapp2.RequestHandler):
                 app_identity_services.get_gcs_resource_bucket_name()),
             # The 'path' variable starts with a forward slash.
             'FULL_URL': '%s://%s%s' % (scheme, netloc, path),
-            'INVALID_NAME_CHARS': feconf.INVALID_NAME_CHARS,
             'SITE_FEEDBACK_FORM_URL': feconf.SITE_FEEDBACK_FORM_URL,
-            'SITE_NAME': feconf.SITE_NAME,
-            'SYSTEM_USERNAMES': feconf.SYSTEM_USERNAMES,
             'TEMPLATE_DIR_PREFIX': utils.get_template_dir_prefix(),
             'can_create_collections': bool(
                 role_services.ACTION_CREATE_COLLECTION in self.user.actions),
@@ -440,7 +440,7 @@ class BaseHandler(webapp2.RequestHandler):
         """Overwrites the default exception handler.
 
         Args:
-            exception: The exception that was thrown.
+            exception: Exception. The exception that was thrown.
             unused_debug_mode: bool. True if the web application is running
                 in debug mode.
         """
@@ -450,15 +450,16 @@ class BaseHandler(webapp2.RequestHandler):
             return
 
         logging.info(''.join(traceback.format_exception(*sys.exc_info())))
-        logging.error('Exception raised: %s', exception)
 
         if isinstance(exception, self.PageNotFoundException):
-            logging.error('Invalid URL requested: %s', self.request.uri)
+            logging.warning('Invalid URL requested: %s', self.request.uri)
             self.error(404)
             self._render_exception(
                 404, {
                     'error': 'Could not find the page %s.' % self.request.uri})
             return
+
+        logging.error('Exception raised: %s', exception)
 
         if isinstance(exception, self.UnauthorizedUserException):
             self.error(401)
@@ -572,6 +573,9 @@ class CsrfTokenManager(object):
         Args:
             user_id: str. The user_id to validate the CSRF token against.
             token: str. The CSRF token to validate.
+
+        Returns:
+            bool. Whether the given CSRF token is valid.
         """
         try:
             parts = token.split('/')

@@ -20,11 +20,13 @@
  * followed by the name of the arg.
  */
 oppia.directive('oppiaNoninteractiveImage', [
-  '$rootScope', '$sce', 'HtmlEscaperService', 'ExplorationContextService',
-  'UrlInterpolationService',
+  '$rootScope', '$sce', 'HtmlEscaperService', 'ContextService',
+  'UrlInterpolationService', 'ImagePreloaderService',
+  'AssetsBackendApiService', 'LOADING_INDICATOR_URL',
   function(
-      $rootScope, $sce, HtmlEscaperService, ExplorationContextService,
-      UrlInterpolationService) {
+      $rootScope, $sce, HtmlEscaperService, ContextService,
+      UrlInterpolationService, ImagePreloaderService, AssetsBackendApiService,
+      LOADING_INDICATOR_URL) {
     return {
       restrict: 'E',
       scope: {},
@@ -33,9 +35,50 @@ oppia.directive('oppiaNoninteractiveImage', [
       controller: ['$scope', '$attrs', function($scope, $attrs) {
         $scope.filepath = HtmlEscaperService.escapedJsonToObj(
           $attrs.filepathWithValue);
-        $scope.imageUrl = $sce.trustAsResourceUrl(
-          '/imagehandler/' + ExplorationContextService.getExplorationId() +
-          '/' + encodeURIComponent($scope.filepath));
+        $scope.imageUrl = '';
+        $scope.loadingIndicatorUrl = UrlInterpolationService.getStaticImageUrl(
+          LOADING_INDICATOR_URL);
+        $scope.isLoadingIndicatorShown = false;
+        $scope.isTryAgainShown = false;
+
+        if (ImagePreloaderService.inExplorationPlayer()) {
+          $scope.isLoadingIndicatorShown = true;
+          $scope.dimensions = (
+            ImagePreloaderService.getDimensionsOfImage($scope.filepath));
+          // For aligning the gif to the center of it's container
+          var loadingIndicatorSize = (
+            ($scope.dimensions.height < 124) ? 24 : 120);
+          $scope.imageContainerStyle = {
+            height: $scope.dimensions.height + 'px'
+          };
+          $scope.loadingIndicatorStyle = {
+            height: loadingIndicatorSize + 'px',
+            width: loadingIndicatorSize + 'px'
+          };
+
+          $scope.loadImage = function() {
+            $scope.isLoadingIndicatorShown = true;
+            $scope.isTryAgainShown = false;
+            ImagePreloaderService.getImageUrl($scope.filepath)
+              .then(function(objectUrl) {
+                $scope.isTryAgainShown = false;
+                $scope.isLoadingIndicatorShown = false;
+                $scope.imageUrl = objectUrl;
+              }, function() {
+                $scope.isTryAgainShown = true;
+                $scope.isLoadingIndicatorShown = false;
+              });
+          };
+          $scope.loadImage();
+        } else {
+          // This is the case when user is in exploration editor or in
+          // preview mode. We don't have loading indicator or try again for
+          // showing images in the exploration editor or in preview mode. So
+          // we directly assign the url to the imageUrl.
+          $scope.imageUrl = AssetsBackendApiService.getImageUrlForPreview(
+            ContextService.getExplorationId(), $scope.filepath);
+        }
+
         $scope.imageCaption = '';
         if ($attrs.captionWithValue) {
           $scope.imageCaption = HtmlEscaperService.escapedJsonToObj(

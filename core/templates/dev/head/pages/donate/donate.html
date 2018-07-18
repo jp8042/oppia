@@ -51,7 +51,8 @@
           <a ng-click="onDonateThroughAmazon()" class="btn oppia-donate-options-button" tabindex="0">Amazon Smile</a>
         </div>
         <h2 style="color: #fff; font-size: 20px; margin-bottom: 20px; margin-top: 20px;">
-          Your generous gift funds:</h2>
+          Your generous gift funds:
+        </h2>
         <div style="margin-bottom: 16px; text-align: center;">
           <img ng-src="<[donateImgUrl]>" alt="Server costs, student outreach, marketing">
         </div>
@@ -96,6 +97,55 @@
       font-weight: normal;
       margin: 2.33em 0;
       text-align: center;
+    }
+    .oppia-donation-card-content-wide {
+      margin: 40px auto 80px;
+      min-height: 670px;
+      overflow: auto;
+    }
+    .oppia-donate-options {
+      background-color: #009688;
+      display: block;
+      float: right;
+      font-family: "Capriola", "Roboto", Arial, sans-serif;
+      padding: 10px 10px 35px 10px;
+      width: 340px;
+    }
+    .btn.oppia-donate-options-button {
+      background-color: rgba(0,0,0,0.2);
+      color: rgba(255,255,255,1.0);
+      font-family: "Capriola", "Roboto", Arial, sans-serif;
+      font-size: 16px;
+      height: 40px;
+      margin: 10px auto;
+      width: 180px;
+    }
+    .btn.oppia-donate-options-button:hover,
+    .btn.oppia-donate-options-button:focus {
+      background-color: rgba(5, 190, 178, 1);
+      color: rgba(255,255,255,1);
+    }
+    .oppia-donate-info {
+      float: left;
+      padding-bottom: 30px;
+      width: -webkit-calc(100% - 340px);
+      width: -moz-calc(100% - 340px);
+      width: -o-calc(100% - 340px);
+      width: calc(100% - 340px);
+    }
+    @media only screen and (max-width: 1140px) {
+      .oppia-donation-card-content-wide {
+        margin-bottom: 90px;
+      }
+      .oppia-donate-info {
+        display: block;
+        position: inherit;
+        width: 100%;
+      }
+      .oppia-donate-options {
+        float: clear;
+        width: 100%;
+      }
     }
   </style>
 {% endblock %}

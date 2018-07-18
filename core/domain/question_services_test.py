@@ -1,6 +1,4 @@
-# coding: utf-8
-#
-# Copyright 2017 The Oppia Authors. All Rights Reserved.
+# Copyright 2018 The Oppia Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from core.domain import exp_domain
 from core.domain import question_domain
 from core.domain import question_services
 from core.domain import user_services
 from core.platform import models
 from core.tests import test_utils
+import feconf
 
 (question_models,) = models.Registry.import_models([models.NAMES.question])
 memcache_services = models.Registry.import_memcache_services()
@@ -31,102 +29,121 @@ class QuestionServicesUnitTest(test_utils.GenericTestBase):
     def setUp(self):
         """Before each individual test, create dummy user."""
         super(QuestionServicesUnitTest, self).setUp()
+        self.signup(self.TOPIC_MANAGER_EMAIL, self.TOPIC_MANAGER_USERNAME)
+        self.signup(self.NEW_USER_EMAIL, self.NEW_USER_USERNAME)
+        self.signup(self.EDITOR_EMAIL, self.EDITOR_USERNAME)
+        self.signup(self.ADMIN_EMAIL, self.ADMIN_USERNAME)
 
-        self.owner_id = self.get_user_id_from_email(self.OWNER_EMAIL)
-        user_services.create_new_user(self.owner_id, self.OWNER_EMAIL)
-        self.signup(self.OWNER_EMAIL, self.OWNER_USERNAME)
+        self.admin_id = self.get_user_id_from_email(self.ADMIN_EMAIL)
+        self.topic_manager_id = self.get_user_id_from_email(
+            self.TOPIC_MANAGER_EMAIL)
+        self.new_user_id = self.get_user_id_from_email(
+            self.NEW_USER_EMAIL)
+        self.editor_id = self.get_user_id_from_email(
+            self.EDITOR_EMAIL)
+
+        self.set_admins([self.ADMIN_USERNAME])
+        self.set_topic_managers([self.TOPIC_MANAGER_USERNAME])
+
+        self.topic_manager = user_services.UserActionsInfo(
+            self.topic_manager_id)
+        self.admin = user_services.UserActionsInfo(self.admin_id)
+        self.new_user = user_services.UserActionsInfo(self.new_user_id)
+        self.editor = user_services.UserActionsInfo(self.editor_id)
+
+        self.question_id = question_services.get_new_question_id()
+        self.question = self.save_new_question(
+            self.question_id, self.editor_id,
+            self._create_valid_question_data('ABC'))
 
     def test_get_question_by_id(self):
-        question = question_domain.Question(
-            'dummy', 'A Question',
-            exp_domain.State.create_default_state('ABC').to_dict(), 1, 'en')
+        question = question_services.get_question_by_id(self.question_id)
 
-        question_id = question_services.add_question(self.owner_id, question)
-        question = question_services.get_question_by_id(question_id)
+        self.assertEqual(question.id, self.question_id)
+        question = question_services.get_question_by_id(
+            'question_id', strict=False)
+        self.assertIsNone(question)
 
-        self.assertEqual(question.title, 'A Question')
+        with self.assertRaisesRegexp(
+            Exception, 'Entity for class QuestionModel with id question_id '
+            'not found'):
+            question_services.get_question_by_id('question_id')
 
     def test_get_questions_by_ids(self):
-        question = question_domain.Question(
-            'dummy', 'A Question',
-            exp_domain.State.create_default_state('ABC').to_dict(), 1, 'en')
-
-        question1_id = question_services.add_question(
-            self.owner_id, question)
-        question = question_domain.Question(
-            'dummy2', 'A Question2',
-            exp_domain.State.create_default_state('ABC').to_dict(), 1, 'en')
-
-        question2_id = question_services.add_question(
-            self.owner_id, question)
+        question_id_2 = question_services.get_new_question_id()
+        self.save_new_question(
+            question_id_2, self.editor_id,
+            self._create_valid_question_data('DEF'))
         questions = question_services.get_questions_by_ids(
-            [question1_id, question2_id])
-        self.assertEqual(len(questions), 2)
-        self.assertEqual(questions[0].title, 'A Question')
-        self.assertEqual(questions[1].title, 'A Question2')
-
-    def test_add_question(self):
-        state = exp_domain.State.create_default_state('ABC')
-        question_data = state.to_dict()
-        question_id = 'dummy'
-        title = 'A Question'
-        question_data_schema_version = 1
-        language_code = 'en'
-        question = question_domain.Question(
-            question_id, title, question_data, question_data_schema_version,
-            language_code)
-
-        question_id = question_services.add_question(self.owner_id, question)
-        model = question_models.QuestionModel.get(question_id)
-
-        self.assertEqual(model.title, title)
-        self.assertEqual(model.question_data, question_data)
-        self.assertEqual(
-            model.question_data_schema_version,
-            question_data_schema_version)
-        self.assertEqual(model.language_code, language_code)
+            [self.question_id, 'invalid_question_id', question_id_2])
+        self.assertEqual(len(questions), 3)
+        self.assertEqual(questions[0].id, self.question_id)
+        self.assertIsNone(questions[1])
+        self.assertEqual(questions[2].id, question_id_2)
 
     def test_delete_question(self):
-        question = question_domain.Question(
-            'dummy', 'A Question',
-            exp_domain.State.create_default_state('ABC').to_dict(),
-            1, 'en')
-
-        question_id = question_services.add_question(self.owner_id, question)
-        question_services.delete_question(
-            self.owner_id, question_id)
+        question_services.delete_question(self.editor_id, self.question_id)
 
         with self.assertRaisesRegexp(Exception, (
             'Entity for class QuestionModel with id %s not found' % (
-                question_id))):
-            question_models.QuestionModel.get(question_id)
+                self.question_id))):
+            question_models.QuestionModel.get(self.question_id)
+
+        with self.assertRaisesRegexp(
+            Exception, 'Entity for class QuestionModel with id question_id '
+            'not found'):
+            question_services.delete_question(self.editor_id, 'question_id')
 
     def test_update_question(self):
-        state = exp_domain.State.create_default_state('ABC')
-        question_data = state.to_dict()
-        question_id = 'dummy'
-        title = 'A Question'
-        question_data_schema_version = 1
-        language_code = 'en'
-        question = question_domain.Question(
-            question_id, title, question_data, question_data_schema_version,
-            language_code)
-
-        question_id = question_services.add_question(self.owner_id, question)
-        change_dict = {'cmd': 'update_question_property',
-                       'property_name': 'title',
-                       'new_value': 'ABC',
-                       'old_value': 'A Question'}
+        new_question_data = self._create_valid_question_data('DEF')
+        change_dict = {
+            'cmd': 'update_question_property',
+            'property_name': 'question_state_data',
+            'new_value': new_question_data.to_dict(),
+            'old_value': self.question.question_state_data.to_dict()
+        }
         change_list = [question_domain.QuestionChange(change_dict)]
 
         question_services.update_question(
-            self.owner_id, question_id, change_list, (
-                'updated title'))
+            self.editor_id, self.question_id, change_list,
+            'updated question data')
 
-        model = question_models.QuestionModel.get(question_id)
-        self.assertEqual(model.title, 'ABC')
-        self.assertEqual(model.question_data, question_data)
+        question = question_services.get_question_by_id(self.question_id)
         self.assertEqual(
-            model.question_data_schema_version,
-            question_data_schema_version)
-        self.assertEqual(model.language_code, language_code)
+            question.question_state_data.to_dict(), new_question_data.to_dict())
+        self.assertEqual(question.version, 2)
+
+    def test_compute_summary_of_question(self):
+        question_summary = question_services.compute_summary_of_question(
+            self.question, self.editor_id)
+
+        self.assertEqual(question_summary.id, self.question_id)
+        self.assertEqual(
+            question_summary.question_content,
+            feconf.DEFAULT_INIT_STATE_CONTENT_STR)
+
+    def test_get_question_summaries_by_creator_id(self):
+        question_summaries = (
+            question_services.get_question_summaries_by_creator_id(
+                self.editor_id))
+
+        self.assertEqual(len(question_summaries), 1)
+        for question_summary in question_summaries:
+            self.assertEqual(question_summary.id, self.question_id)
+            self.assertEqual(
+                question_summary.question_content,
+                feconf.DEFAULT_INIT_STATE_CONTENT_STR)
+
+    def test_created_question_rights(self):
+        question_rights = question_services.get_question_rights(
+            self.question_id)
+
+        self.assertTrue(question_rights.is_creator(self.editor_id))
+        self.assertEqual(question_rights.creator_id, self.editor_id)
+
+        self.assertIsNone(
+            question_services.get_question_rights('question_id', strict=False))
+        with self.assertRaisesRegexp(
+            Exception, 'Entity for class QuestionRightsModel with id '
+            'question_id not found'):
+            question_services.get_question_rights('question_id')

@@ -30,16 +30,19 @@ oppia.directive('topNavigationBar', [
         '$scope', '$http', '$window', '$timeout', '$translate',
         'SidebarStatusService', 'LABEL_FOR_CLEARING_FOCUS',
         'siteAnalyticsService', 'WindowDimensionsService', 'DebouncerService',
+        'DeviceInfoService',
         function(
             $scope, $http, $window, $timeout, $translate,
             SidebarStatusService, LABEL_FOR_CLEARING_FOCUS,
-            siteAnalyticsService, WindowDimensionsService, DebouncerService) {
+            siteAnalyticsService, WindowDimensionsService, DebouncerService,
+            DeviceInfoService) {
           if (GLOBALS.userIsLoggedIn && GLOBALS.preferredSiteLanguageCode) {
             $translate.use(GLOBALS.preferredSiteLanguageCode);
           }
           var NAV_MODE_SIGNUP = 'signup';
           var NAV_MODES_WITH_CUSTOM_LOCAL_NAV = [
-            'create', 'explore', 'collection'];
+            'create', 'explore', 'collection', 'topics_and_skills_dashboard',
+            'topic_editor', 'story_editor'];
           $scope.NAV_MODE = GLOBALS.NAV_MODE;
           $scope.LABEL_FOR_CLEARING_FOCUS = LABEL_FOR_CLEARING_FOCUS;
           $scope.getStaticImageUrl = UrlInterpolationService.getStaticImageUrl;
@@ -108,6 +111,12 @@ oppia.directive('topNavigationBar', [
             $scope.activeMenuName = '';
             angular.element(evt.currentTarget).closest('li')
               .find('a').blur();
+          };
+          $scope.closeSubmenuIfNotMobile = function(evt) {
+            if (DeviceInfoService.isMobileDevice()) {
+              return;
+            }
+            $scope.closeSubmenu(evt);
           };
           /**
            * Handles keydown events on menus.

@@ -38,7 +38,8 @@ class UserGlobalPrefs(object):
 
     def __init__(
             self, can_receive_email_updates, can_receive_editor_role_email,
-            can_receive_feedback_message_email, can_receive_subscription_email):
+            can_receive_feedback_message_email,
+            can_receive_subscription_email):
         """Constructs a UserGlobalPrefs domain object.
 
         Args:
@@ -216,7 +217,8 @@ class LearnerPlaylist(object):
         Args:
             exploration_id: str. The exploration id to be inserted into the
                 play later list.
-            position_to_be_inserted: The position at which it is to be inserted.
+            position_to_be_inserted: int. The position at which it
+                is to be inserted.
         """
         self.exploration_ids.insert(
             position_to_be_inserted, exploration_id)
@@ -237,7 +239,8 @@ class LearnerPlaylist(object):
         Args:
             collection_id: str. The collection id to be inserted into the
                 play later list.
-            position_to_be_inserted: The position at which it is to be inserted.
+            position_to_be_inserted: int. The position at which it
+                is to be inserted.
         """
         self.collection_ids.insert(position_to_be_inserted, collection_id)
 
@@ -263,3 +266,12 @@ class LearnerPlaylist(object):
         collection_id: str. The id of the collection to be removed.
         """
         self.collection_ids.remove(collection_id)
+
+
+class UserContributionScoring(object):
+    """Domain object for UserContributionScoringModel."""
+
+    def __init__(self, user_id, score_category, score):
+        self.user_id = user_id
+        self.score_category = score_category
+        self.score = score

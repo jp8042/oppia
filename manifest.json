@@ -149,6 +149,16 @@
           "js": ["angular-cookies.min.js"]
         }
       },
+      "angularDragAndDrop": {
+        "version": "2.1.0",
+        "downloadFormat": "zip",
+        "url": "https://github.com/marceljuenemann/angular-drag-and-drop-lists/archive/2.1.0.zip",
+        "rootDirPrefix": "angular-drag-and-drop-lists-",
+        "targetDirPrefix": "angular-drag-and-drop-lists-",
+        "bundle": {
+          "js": ["angular-drag-and-drop-lists.min.js"]
+        }
+      },
       "angularStorageCookiesRev": {
         "version": "2.8.1",
         "downloadFormat": "zip",
@@ -162,9 +172,9 @@
       "messageFormat": {
         "version": "0.3.1",
         "downloadFormat": "zip",
-        "url": "https://github.com/SlexAxton/messageformat.js/archive/v0.3.1.zip",
+        "url": "https://github.com/messageformat/messageformat/archive/v0.3.1.zip",
         "targetDirPrefix": "messageformat-",
-        "rootDirPrefix": "messageformat.js-",
+        "rootDirPrefix": "messageformat-",
         "bundle": {
           "js": ["messageformat.js"]
         }
@@ -305,13 +315,6 @@
           "js": []
         }
       },
-      "jqueryThemes": {
-        "version": "1.10.3",
-        "downloadFormat": "zip",
-        "url": "http://jqueryui.com/resources/download/jquery-ui-themes-1.10.3.zip",
-        "rootDirPrefix": "jquery-ui-themes-",
-        "targetDirPrefix": "jquery-ui-themes-"
-      },
       "jqueryUITouchPunch": {
         "version": "0.3.1",
         "downloadFormat": "zip",
@@ -332,6 +335,17 @@
         "url": "https://github.com/mathjax/MathJax/archive/2.6.0.zip",
         "rootDirPrefix": "MathJax-",
         "targetDirPrefix": "MathJax-"
+      },
+      "mathJs": {
+        "version": "4.2.2",
+        "downloadFormat": "files",
+        "url": "https://cdnjs.cloudflare.com/ajax/libs/mathjs/4.2.2",
+        "rootDirPrefix": "math-js-",
+        "targetDirPrefix": "math-js-",
+        "files": ["math.js", "math.min.js", "math.min.map"],
+        "bundle": {
+          "js": ["math.js"]
+        }
       },
       "midiJs": {
         "version": "2ef687b47e5f478f1506b47238f3785d9ea8bd25",
@@ -394,16 +408,54 @@
           "js": ["dist/js/select2.full.js"]
         }
       },
-      "textAngular": {
-        "version": "1.4.5",
+      "ckeditor": {
+        "version": "4.9.2",
         "downloadFormat": "zip",
-        "url": "https://github.com/fraywing/textAngular/archive/v1.4.5.zip",
-        "rootDirPrefix": "textAngular-",
-        "targetDirPrefix": "textAngular-",
-        "bundle": {
-          "css": ["dist/textAngular.css"],
-          "js": ["dist/textAngular.js", "dist/textAngularSetup.js"]
-        }
+        "url": "http://download.cksource.com/CKEditor/CKEditor/CKEditor%204.9.2/ckeditor_4.9.2_full.zip",
+        "rootDir": "ckeditor",
+        "targetDirPrefix": "ckeditor-"
+      },
+      "ckeditorWidget": {
+        "version": "4.9.2",
+        "downloadFormat": "zip",
+        "url": "http://download.ckeditor.com/widget/releases/widget_4.9.2.zip",
+        "rootDir": "widget",
+        "targetDirPrefix": "ckeditor-widget-"
+      },
+      "ckeditorLineutils": {
+        "version": "4.9.2",
+        "downloadFormat": "zip",
+        "url": "http://download.ckeditor.com/lineutils/releases/lineutils_4.9.2.zip",
+        "rootDir": "lineutils",
+        "targetDirPrefix": "ckeditor-lineutils-"
+      },
+      "ckeditorSharedspace": {
+        "version": "4.9.2",
+        "downloadFormat": "zip",
+        "url": "http://download.ckeditor.com/sharedspace/releases/sharedspace_4.9.2.zip",
+        "rootDir": "sharedspace",
+        "targetDirPrefix": "ckeditor-sharedspace-"
+      },
+      "ckeditorBootstrapCK": {
+        "version": "1.0",
+        "downloadFormat": "zip",
+        "url": "http://download.ckeditor.com/bootstrapck/releases/bootstrapck_1.0_0.zip",
+        "rootDir": "bootstrapck",
+        "targetDirPrefix": "ckeditor-bootstrapck-"
+      },
+      "ckeditorIndentBlockPlugin" : {
+        "version": "4.9.2",
+        "downloadFormat": "zip",
+        "url": "https://download.ckeditor.com/indentblock/releases/indentblock_4.9.2.zip",
+        "rootDir": "indentblock",
+        "targetDirPrefix": "ckeditor-indentblock-"
+      },
+      "ckeditorBlockquotePlugin" : {
+        "version": "4.9.2",
+        "downloadFormat": "zip",
+        "url": "https://download.ckeditor.com/blockquote/releases/blockquote_4.9.2.zip",
+        "rootDir": "blockquote",
+        "targetDirPrefix": "ckeditor-blockquote-"
       },
       "uiBootstrap": {
         "version": "2.5.0",
@@ -438,6 +490,17 @@
         "targetDirPrefix": "ui-sortable-",
         "bundle": {
           "js": ["src/sortable.js"]
+        }
+      },
+      "uiTree": {
+        "version": "",
+        "downloadFormat": "zip",
+        "url": "https://github.com/angular-ui-tree/angular-ui-tree/archive/master.zip",
+        "rootDirPrefix": "angular-ui-tree-master",
+        "targetDirPrefix": "ui-tree-2.22.6",
+        "bundle": {
+          "css": ["dist/angular-ui-tree.min.css"],
+          "js": ["dist/angular-ui-tree.js"]
         }
       },
       "uiUtils": {

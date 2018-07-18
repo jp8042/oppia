@@ -37,13 +37,13 @@ describe('Sidebar state name controller', function() {
         autosaveChangeList: function() {}
       };
       module(function($provide) {
-        $provide.value('ExplorationDataService', mockExplorationData);
+        $provide.value('ExplorationDataService', [mockExplorationData][0]);
+        $provide.constant('INVALID_NAME_CHARS', '#@&^%$');
       });
       spyOn(mockExplorationData, 'autosaveChangeList');
     });
 
-    beforeEach(inject(function(
-        $rootScope, $filter, $controller, $injector) {
+    beforeEach(inject(function($controller, $filter, $injector, $rootScope) {
       scope = $rootScope.$new();
       filter = $filter;
       rootScope = $rootScope;
@@ -52,19 +52,24 @@ describe('Sidebar state name controller', function() {
       ess = $injector.get('ExplorationStatesService');
       $httpBackend = $injector.get('$httpBackend');
 
-      GLOBALS.INVALID_NAME_CHARS = '#@&^%$';
-
       ess.init({
         'First State': {
           content: {
-            html: 'First State Content',
-            audio_translations: {}
+            content_id: 'content',
+            html: 'First State Content'
+          },
+          content_ids_to_audio_translations: {
+            content: {},
+            default_outcome: {}
           },
           interaction: {
             answer_groups: [],
             default_outcome: {
               dest: 'Second State',
-              feedback: [],
+              feedback: {
+                content_id: 'default_outcome',
+                html: ''
+              },
               param_changes: []
             },
             hints: []
@@ -73,14 +78,21 @@ describe('Sidebar state name controller', function() {
         },
         'Second State': {
           content: {
-            html: 'Second State Content',
-            audio_translations: {}
+            content_id: 'content',
+            html: 'Second State Content'
+          },
+          content_ids_to_audio_translations: {
+            content: {},
+            default_outcome: {}
           },
           interaction: {
             answer_groups: [],
             default_outcome: {
               dest: 'Second State',
-              feedback: [],
+              feedback: {
+                content_id: 'default_outcome',
+                html: ''
+              },
               param_changes: []
             },
             hints: []
@@ -89,14 +101,21 @@ describe('Sidebar state name controller', function() {
         },
         'Third State': {
           content: {
-            html: 'This is some content.',
-            audio_translations: {}
+            content_id: 'content',
+            html: 'This is some content.'
+          },
+          content_ids_to_audio_translations: {
+            content: {},
+            default_outcome: {}
           },
           interaction: {
             answer_groups: [],
             default_outcome: {
               dest: 'Second State',
-              feedback: [],
+              feedback: {
+                content_id: 'default_outcome',
+                html: ''
+              },
               param_changes: []
             },
             hints: []

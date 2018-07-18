@@ -1,8 +1,9 @@
 var argv = require('yargs').argv;
-var isMinificationNeeded = (argv.minify === 'True');
+var prodEnv = (argv.prod_env === 'True');
 var generatedJs = 'third_party/generated/js/third_party.js';
-if (isMinificationNeeded) {
-  generatedJs = 'third_party/generated/js/third_party.min.js';
+if (prodEnv) {
+  generatedJs = (
+    'backend_prod_files/third_party/generated/js/third_party.min.js');
 }
 
 module.exports = function(config) {
@@ -24,6 +25,7 @@ module.exports = function(config) {
       'third_party/static/headroom-js-0.9.4/headroom.min.js',
       'third_party/static/headroom-js-0.9.4/angular.headroom.min.js',
       'third_party/static/math-expressions-370a77/build/math-expressions.js',
+      'third_party/static/ckeditor-4.9.2/ckeditor.js',
       generatedJs,
       'core/templates/dev/head/*.js',
       // Note that unexpected errors occur ("Cannot read property 'num' of
