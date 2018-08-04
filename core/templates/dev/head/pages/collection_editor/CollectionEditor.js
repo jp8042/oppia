@@ -35,8 +35,23 @@ oppia.constant(
 
 oppia.controller('CollectionEditor', [
   'CollectionEditorStateService',
-  function(CollectionEditorStateService) {
-    // Load the collection to be edited.
-    CollectionEditorStateService.loadCollection(GLOBALS.collectionId);
-  }
-]);
+  '$rootScope',
+  'ReadOnlyCollectionBackendApiService',
+  'CollectionObjectFactory',
+  function(CollectionEditorStateService,
+  	$rootScope,
+  	ReadOnlyCollectionBackendApiService,
+  	CollectionObjectFactory) {
+      ReadOnlyCollectionBackendApiService.loadCollection(
+        GLOBALS.collectionId).then(
+          function(collectionBackendObject) {
+            $rootScope.title = CollectionObjectFactory.create(
+              collectionBackendObject).getTitle();
+            if($rootScope.title == ''){
+              $rootScope.title = 'Untitled Collection';
+            }
+          }
+        )
+	  // Load the collection to be edited.
+	  CollectionEditorStateService.loadCollection(GLOBALS.collectionId);
+}]);
