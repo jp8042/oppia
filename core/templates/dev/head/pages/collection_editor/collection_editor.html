@@ -1,12 +1,6 @@
 {% extends 'pages/base.html' %}
 
-{% block maintitle %}
-  {% if title %}
-    {{ title }} - Oppia Editor
-  {% else %}
-    Untitled Collection - Oppia Editor
-  {% endif %}
-{% endblock maintitle %}
+<title itemprop="name" translate="{% block maintitle %}<[title]> - Oppia Editor {% endblock maintitle %}"></title>
 
 {% block header_js %}
   {{ super() }}
